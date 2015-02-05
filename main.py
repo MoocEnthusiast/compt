@@ -1,14 +1,34 @@
 """
 this file contains the main part of the program
 combines the reading from file (of the parameters, conversions, setting up the grids, performing calculation and writing back to file
+
+
 """
 
+""" 
+
+for each central_energy 
+     create distribution
+     take maximumm energy
+     for each order of nlcs
+         compute maximum
+     declare grid according to maximum
+     
+     #done
+     for each energy in distribution
+         calculate spectrum 
+         [aka for each order of the nlcs
+             compute spectrum]
+             
+         add to grid     
+"""
 
 ## imports, declarations
 from IOHANDLING import *
 from CONSTANTS import *
 import scipy
 import numpy as np
+
 
 ## reading of the parameters
 params = read_data('parameters.csv');
@@ -18,8 +38,8 @@ Ee_0    = float(params["Ee_0"]);    #initial (central )energy
 Ee_N    = int(params["Ee_N"]);      #number of (central ) energies for which im computing the spectrum
 Ee_D    = float(params["Ee_D"]);    #distance between 2 succsesive energies
 
-THETA01_L   = np.pi/180.*30.;#float(params["THETA01_L"]) #scattering angle
-THETA02_L   = float(params["THETA02_L"]) #measurement angle
+THETA01_L   = np.pi/180.*float(params["THETA01_L"]) #scattering angle
+THETA02_L   = np.pi/180.*float(params["THETA02_L"]) #measurement angle
 A0_L        = float(params["A0_0"])
 LAMBDA_L    = float(params["LAMBDA_0"]) * 1e-9;
 ORD         = int(params["NLCS_ORD"]);      #maximum order for nlcs
@@ -31,14 +51,13 @@ Ep_gridsize         = 1000;
 #grid size for the electron distribution
 Ee_distr_gridsize   = 500;
 # fwhm for the electorn distribution (actually sigma. to be changed)
-sigma               = 0.01;
-ORD = 2;
+FWHM                = float(params["FWHMe_0"])/100;
 
 #for each of the (central) energies
 for i in range(Ee_N):
     Ee_central = Ee_0 + i*Ee_D
     #now create a distribution of energies
-    Ee_sigma            = sigma*Ee_central;
+    Ee_sigma            = FWHM*Ee_central/(2.*np.sqrt(2*np.log(2)));
     #99.7% of distribution included between +/- 3*sigma  
     #this is the energies range for the distribution
     Ee_distr_energies   = np.linspace(Ee_central - 3*Ee_sigma, Ee_central + 3*Ee_sigma, Ee_distr_gridsize );
@@ -57,39 +76,32 @@ for i in range(Ee_N):
         if (Ep_cs > Ep_cs_max) :
             Ep_cs_max = Ep_cs;
     
-        print Ep_cs_max*CONV_J2eV*1e-6;    
-        #now u have the maximum energy for the grid for cross sections
-        #grid cross section of the size energies and order
-        cross_section_grid = np.zeros((ORD,Ep_gridsize));
+    print Ep_cs_max*CONV_J2eV*1e-6;    
+    #now u have the maximum energy for the grid for cross sections
+    #grid cross section of the size energies and order
+    cross_section_grid = np.zeros((ORD,Ep_gridsize));
         
-        for j in range(Ee_distr_gridsize):
+    for j in range(Ee_distr_gridsize):
             
             
-            Ej  = Ee_distr_energies[j];
-            Rhoj= Ee_distr[j] 
-            GAMMA_Ej = 1e+9*Ej/(CONST_ME*CONST_C**2*CONV_J2eV);
-            for k in range(ORD):
-                cross_section_grid[k][:] = Rhoj*nlcs_get_cross_section(k+1,Ep_cs_max,Rhoj,Ep_gridsize,GAMMA_Ej)+\
+        Ej  = Ee_distr_energies[j];
+        Rhoj= Ee_distr[j] 
+        GAMMA_Ej = 1e+9*Ej/(CONST_ME*CONST_C**2*CONV_J2eV);
+        for k in range(ORD):
+            cross_section_grid[k][:] = Rhoj*nlcs_get_cross_section(k+1,Ep_cs_max,Rhoj,Ep_gridsize,GAMMA_Ej)+\
                                             cross_section_grid[k][:];
              
-        Ep_grid = np.linspace(0,Ep_cs_max*CONV_J2eV*1e-6,Ep_gridsize)        
-        plot(Ep_grid,cross_section_grid[0][:]);#+cross_section_grid[1][:]);
+    Ep_grid = np.linspace(0,Ep_cs_max*CONV_J2eV*1e-6,Ep_gridsize)        
         
-""" for each central_energy 
-     create distribution
-     take maximumm energy
-     for each order of nlcs
-         compute maximum
-     declare grid according to maximum
-     
-     #done
-     for each energy in distribution
-         calculate spectrum 
-         [aka for each order of the nlcs
-             compute spectrum]
-             
-         add to grid     
-"""
+    plot(Ep_grid,cross_section_grid[0][:]);#+cross_section_grid[1][:]);
+    final_cross_section = np.zeros(Ep_gridsize);
+    
+    for j in range(ORD):
+        final_cross_section[:]=final_cross_section[:]+cross_section_grid[j][:]
+    
+        
+    write_data(Ee_central,param["FWHMe_0"],A0_L,ORD,Ep_grid,final_cross_section/max(final_cross_section),params);
+
 
 
 
