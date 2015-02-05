@@ -4,9 +4,8 @@ import numpy as np
 from scipy.special import jn
 
 from CONSTANTS import *
+from IOHANDLING import *
 
-CONV_eV2J= 1.602e-19*1.0; 
-CONV_J2eV= 1/CONV_eV2J;
 
 LAMBDA_L    = 800 * 1e-09;
 OMEGA_L     = 2*np.pi * CONST_C / LAMBDA_L
@@ -17,14 +16,15 @@ A0_L        = 1;
 N_ORDER     = 1;
 N_ENERG     = 1000
 
-def nlcs_beta(GAMMA_E):
+def nlcs_gamma2beta(GAMMA_E):
     return np.sqrt( (GAMMA_E**2 - 1.) / (GAMMA_E**2))
 
-def nlcs_energy(GAMMA_E):
+def nlcs_energy2gamma(GAMMA_E):
     return CONST_ME*CONST_C**2*GAMMA_E    
     
+    
 def nlcs_max_scatter_energy_full(N_ORDER,GAMMA_E,OMEGA_L,THETA0_L,THETA1_L,A0_L):
-    BETA_E = nlcs_beta(GAMMA_E);    
+    BETA_E = nlcs_gamma2beta(GAMMA_E);    
     FINAL_ENERGY = 2* N_ORDER * OMEGA_L *CONST_HBAR * GAMMA_E**2 * (1 + BETA_E*np.cos(THETA0_L)) / \
                (\
                2*GAMMA_E**2* (1- BETA_E*np.cos(THETA1_L)) + \
@@ -62,6 +62,15 @@ def nlcs_get_cross_section(N_ORDER,FINAL_ENERGY,rho_e,N_ENERG,GAMMA_E):
         cross_sect[i]  = CONST * ( -4.* jn(N_ORDER,z)**2. + A0_L**2.*(2.+u**2./(1+u) )* \
             ( jn(N_ORDER-1,z)**2. + jn(N_ORDER+1,z)**2. - 2.*jn(N_ORDER,z)**2. ) )       
     return cross_sect;
+
+def nlcs_gaussian(x, mean, sig):
+    return np.exp( - (x - mean)**2. / (2. * sig**2) )/ (sig* np.sqrt(2*np.pi))
+    
+##########################################
+##########################################
+#intermidiate calculation
+##########################################
+##########################################
     
 FINAL_ENERGY = nlcs_max_scatter_energy_full(N_ORDER,GAMMA_E,OMEGA_L,THETA0_L,THETA1_L,A0_L);
 MAXIM_ENERGY = nlcs_max_scatter_energy_simplified(N_ORDER,GAMMA_E,OMEGA_L,THETA0_L,THETA1_L,A0_L);
@@ -81,6 +90,10 @@ print "Maximum energy 02:",MAXIM_ENERGY*CONV_J2eV * 1e-9
 
 
 #energy      = np.linspace(0,FINAL_ENERGY,N_ENERG);
+##########################################
+##########################################
+##########################################
+##########################################
 
 
 
@@ -88,8 +101,7 @@ energy_mean     = 2.500e+09;
 FWHM            = 0.1;
 energy_sig      = FWHM*energy_mean/(2.*np.sqrt(2*np.log(2)));
 
-def gaussian(x, mean, sig):
-    return np.exp( - (x - mean)**2. / (2. * sig**2) )/ (sig* np.sqrt(2*np.pi))
+
 
 energies        = 500;
 energy_elec     = np.linspace(energy_mean-4*energy_sig,energy_mean+4*energy_sig,energies)
@@ -101,7 +113,7 @@ GAMMA_MAX = energy_elec[energies-1]/(CONST_ME*CONST_C**2 * CONV_J2eV)
 ABS_MAX = nlcs_max_scatter_energy_full(N_ORDER,GAMMA_MAX,OMEGA_L,THETA0_L,THETA1_L,A0_L);
 
 cross_sections = np.zeros((energies,N_ENERG))
-
+"""
 for j in range(distr_elec.size):
     RHO_E = distr_elec[j];
     
@@ -138,7 +150,7 @@ for i in range(N_ENERG):
         )
 
 data_file.close();
-    
+    """
 #pyplot.plot(energy*CONV_J2eV * 1e-9,test_cs)
 #pyplot.yscale('log'    )
 
